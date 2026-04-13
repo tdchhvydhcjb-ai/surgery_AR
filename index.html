@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Remote Surgery - RCM Robot AR</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+      .controls {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        width: 80%; background: rgba(0,0,0,0.7); color: white; padding: 15px;
+        border-radius: 10px; z-index: 999; font-family: sans-serif;
+      }
+      input { width: 100%; margin: 10px 0; }
+    </style>
+  </head>
+
+  <body style="margin: 0; overflow: hidden;">
+    <div class="controls">
+      <label>Robot Rotation (RCM Axis)</label>
+      <input type="range" id="rotateRange" min="-90" max="90" value="0">
+      <label>Tool Depth (Insertion)</label>
+      <input type="range" id="depthRange" min="-0.5" max="0.5" step="0.01" value="0">
+      <div id="status">Status: Waiting for AR...</div>
+    </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <a-assets>
+        <a-asset-item id="robotModel" src="rcm_1.glb"></a-asset-item>
+      </a-assets>
+
+      <a-marker preset="hiro">
+        <a-entity id="robotArm" 
+                  gltf-model="#robotModel" 
+                  position="0 0 0" 
+                  scale="0.5 0.5 0.5"
+                  rotation="0 0 0">
+        </a-entity>
+        
+        <a-sphere position="0 0.5 0" radius="0.05" color="red"></a-sphere>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      const arm = document.querySelector('#robotArm');
+      const rotateInp = document.querySelector('#rotateRange');
+      const depthInp = document.querySelector('#depthRange');
+      const status = document.querySelector('#status');
+
+      // 模拟你的 Python 坐标变换逻辑
+      function updateRobot() {
+        const rot = rotateInp.value;
+        const depth = depthInp.value;
+        
+        // 应用旋转和位移
+        // 这里的逻辑对应你 code.txt 里的变换矩阵应用
+        arm.setAttribute('rotation', `0 ${rot} 0`);
+        arm.setAttribute('position', `0 ${depth} 0`);
+        
+        status.innerText = `Rotation: ${rot}deg | Depth: ${depth}m`;
+      }
+
+      rotateInp.addEventListener('input', updateRobot);
+      depthInp.addEventListener('input', updateRobot);
+    </script>
+  </body>
+</html>
