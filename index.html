@@ -1,31 +1,44 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Remote Surgery - RCM Robot AR</title>
+    <title>ELEG5802 - Surgery Robot AR Demo</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
       .controls {
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-        width: 80%; background: rgba(0,0,0,0.7); color: white; padding: 15px;
-        border-radius: 10px; z-index: 999; font-family: sans-serif;
+        width: 85%; background: rgba(0,0,0,0.8); color: white; padding: 15px;
+        border-radius: 12px; z-index: 999; font-family: sans-serif;
       }
-      input { width: 100%; margin: 10px 0; }
+      input { width: 100%; margin: 10px 0; accent-color: #007bff; }
+      .label-group { display: flex; justify-content: space-between; font-size: 14px; }
     </style>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
-      <label>Robot Rotation (RCM Axis)</label>
+      <div class="label-group">
+        <span>Robot Rotation (RCM)</span>
+        <span id="rotVal">0°</span>
+      </div>
       <input type="range" id="rotateRange" min="-90" max="90" value="0">
-      <label>Tool Depth (Insertion)</label>
-      <input type="range" id="depthRange" min="-0.5" max="0.5" step="0.01" value="0">
-      <div id="status">Status: Waiting for AR...</div>
+      
+      <div class="label-group">
+        <span>Tool Depth</span>
+        <span id="depthVal">0.00m</span>
+      </div>
+      <input type="range" id="depthRange" min="-0.2" max="0.2" step="0.01" value="0">
+      
+      <div id="status" style="font-size: 12px; color: #aaa; margin-top: 5px;">
+        Status: Tracking Hiro Marker...
+      </div>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="logarithmicDepthBuffer: true;">
+      
       <a-assets>
         <a-asset-item id="robotModel" src="rcm_1.glb"></a-asset-item>
+        <a-asset-item id="headModel" src="head.glb"></a-asset-item>
       </a-assets>
 
       <a-marker preset="hiro">
@@ -36,12 +49,18 @@
                   rotation="0 0 0">
         </a-entity>
         
-        <a-entity gltf-model="url(head.glb)" 
-          position="0 0.2 0" 
-          scale="0.1 0.1 0.1" 
-          material="opacity: 0.5; transparent: true">
+        <a-entity id="patientHead"
+                  gltf-model="#headModel" 
+                  position="0 0.1 0" 
+                  scale="0.05 0.05 0.05"
+                  material="opacity: 0.5; transparent: true">
         </a-entity>
+
+        <a-sphere position="0 0.1 0" radius="0.01" color="red"></a-sphere>
       </a-marker>
+
+      <a-entity light="type: ambient; intensity: 1.0;"></a-entity>
+      <a-entity light="type: directional; position: 1 2 1; intensity: 0.8;"></a-entity>
 
       <a-entity camera></a-entity>
     </a-scene>
@@ -50,19 +69,24 @@
       const arm = document.querySelector('#robotArm');
       const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
-      const status = document.querySelector('#status');
+      
+      const rotValDisplay = document.querySelector('#rotVal');
+      const depthValDisplay = document.querySelector('#depthVal');
 
-      // 模拟你的 Python 坐标变换逻辑
       function updateRobot() {
         const rot = rotateInp.value;
-        const depth = depthInp.value;
+        const depth = parseFloat(depthInp.value);
         
-        // 应用旋转和位移
-        // 这里的逻辑对应你 code.txt 里的变换矩阵应用
+        // 更新旋转 (绕Y轴)
         arm.setAttribute('rotation', `0 ${rot} 0`);
-        arm.setAttribute('position', `0 ${depth} 0`);
         
-        status.innerText = `Rotation: ${rot}deg | Depth: ${depth}m`;
+        // 更新位移 (根据你的模型朝向，可能需要改 y 或 z)
+        // 这里我们修改 position，但 Scale 依然会保持 HTML 里的 0.005
+        arm.setAttribute('position', {x: 0, y: depth, z: 0});
+        
+        // 更新数值显示
+        rotValDisplay.innerText = rot + "°";
+        depthValDisplay.innerText = depth.toFixed(2) + "m";
       }
 
       rotateInp.addEventListener('input', updateRobot);
