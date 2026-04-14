@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot AR - Independent Target (Fixed)</title>
+    <title>Skullbot Navigation - Path Finding</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -10,26 +10,29 @@
         width: 90%; background: rgba(0,0,0,0.85); color: white; padding: 15px;
         border-radius: 15px; z-index: 999; font-family: sans-serif;
       }
-      .control-group { margin-bottom: 10px; }
-      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; font-size: 13px; }
-      input { width: 100%; height: 12px; margin-bottom: 5px; }
-      .stats { font-size: 11px; color: #ccc; text-align: center; border-top: 1px solid #444; padding-top: 5px; }
+      .control-group { margin-bottom: 12px; }
+      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; }
+      input { width: 100%; }
+      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; }
     </style>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Orbit (Rotate Robot ONLY)</label>
-        <input type="range" id="orbitRange" min="0" max="360" value="0">
+        <label>1. Move Robot (Find Entry Point)</label>
+        <input type="range" id="xRange" min="-0.4" max="0.4" step="0.01" value="0">
       </div>
 
       <div class="control-group">
-        <label>2. Needle Insertion (Forward Push)</label>
-        <input type="range" id="tiltRange" min="-45" max="45" value="0">
-        <input type="range" id="depthRange" min="0" max="0.5" step="0.005" value="0">
+        <label>2. Kinematics (Rotation & Depth)</label>
+        <input type="range" id="rotateRange" min="-90" max="90" value="0">
+        <input type="range" id="depthRange" min="-0.3" max="0.3" step="0.01" value="0">
       </div>
-      <div class="stats" id="status">Target Fixed. Move robot to align!</div>
+
+      <div class="stats" id="status">
+        Robot X: 0 | Rotation: 0° | Depth: 0m
+      </div>
     </div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
@@ -39,18 +42,16 @@
 
       <a-marker preset="hiro">
         
-        <a-entity id="fixedTarget" position="0 0.15 0.6">
-          <a-sphere radius="0.12" color="#f2c1a0" opacity="0.2" transparent="true"></a-sphere>
-          <a-sphere radius="0.03" color="red"></a-sphere>
+        <a-entity id="patientData">
+          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
+          <a-sphere id="targetPoint" position="0 0.15 0" radius="0.02" color="red"></a-sphere>
         </a-entity>
 
-        <a-entity id="robotOrbit" position="0 0 0" rotation="0 0 0">
-          <a-entity id="robotArm" 
-                    gltf-model="#robotModel" 
-                    position="0 0.15 0" 
-                    scale="0.005 0.005 0.005"
-                    rotation="0 0 0"> 
-          </a-entity>
+        <a-entity id="robotArm" 
+                  gltf-model="#robotModel" 
+                  position="0 0 0" 
+                  scale="0.005 0.005 0.005"
+                  rotation="0 0 0">
         </a-entity>
 
       </a-marker>
@@ -59,34 +60,27 @@
     </a-scene>
 
     <script>
-      const orbit = document.querySelector('#robotOrbit');
       const arm = document.querySelector('#robotArm');
-      const orbitInp = document.querySelector('#orbitRange');
-      const tiltInp = document.querySelector('#tiltRange');
+      const xInp = document.querySelector('#xRange');
+      const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
       const status = document.querySelector('#status');
 
       function updateSim() {
-        const angle = orbitInp.value;
-        const tilt = tiltInp.value;
-        const depth = parseFloat(depthInp.value);
+        const posX = xInp.value;
+        const rot = rotateInp.value;
+        const depth = depthInp.value;
 
-        // 1. 旋转：现在只有机器人绕中心转，红球留在原地
-        orbit.setAttribute('rotation', `0 ${angle} 0`);
+        // 核心逻辑：只移动机器人，不移动红球
+        arm.setAttribute('position', `${posX} ${depth} 0`);
+        arm.setAttribute('rotation', `0 ${rot} 0`);
 
-        // 2. 进针：机器人向前挺进
-        arm.setAttribute('position', `0 0.15 ${depth}`);
-        
-        // 3. 倾斜
-        arm.setAttribute('rotation', `${tilt} 0 0`);
-
-        // 计算当前距离 (简化逻辑)
-        const dist = (0.6 - depth).toFixed(2);
-        status.innerText = `Robot Angle: ${angle}° | Distance to Target: ${dist}m`;
+        status.innerText = `Robot X: ${posX} | Rotation: ${rot}° | Depth: ${depth}m`;
       }
 
-      [orbitInp, tiltInp, depthInp].forEach(el => el.addEventListener('input', updateSim));
-      updateSim();
+      xInp.addEventListener('input', updateSim);
+      rotateInp.addEventListener('input', updateSim);
+      depthInp.addEventListener('input', updateSim);
     </script>
   </body>
 </html>
