@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot AR - Forward Piercing Fix</title>
+    <title>Skullbot AR - Long Distance Navigation</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -20,16 +20,16 @@
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Orbit (Rotate around Target)</label>
+        <label>1. Orbit (Search Entry Point around Head)</label>
         <input type="range" id="orbitRange" min="0" max="360" value="0">
       </div>
 
       <div class="control-group">
-        <label>2. Forward Insertion (Push to Red Ball)</label>
+        <label>2. Needle Insertion (Forward Push)</label>
         <input type="range" id="tiltRange" min="-45" max="45" value="0">
-        <input type="range" id="depthRange" min="0" max="0.3" step="0.005" value="0">
+        <input type="range" id="depthRange" min="0" max="0.5" step="0.005" value="0">
       </div>
-      <div class="stats" id="status">Target is now in FRONT of the robot</div>
+      <div class="stats" id="status">Target reset to long distance.</div>
     </div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
@@ -38,17 +38,16 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        
-        <a-entity id="robotOrbit" position="0 0.15 0" rotation="0 0 0">
+        <a-entity id="robotOrbit" position="0 0 0" rotation="0 0 0">
           
-          <a-entity id="targetScene" position="0 0 0.25">
+          <a-entity id="targetScene" position="0 0.15 0.6">
             <a-sphere radius="0.12" color="#f2c1a0" opacity="0.2" transparent="true"></a-sphere>
-            <a-sphere radius="0.02" color="red"></a-sphere>
+            <a-sphere radius="0.03" color="red"></a-sphere>
           </a-entity>
 
           <a-entity id="robotArm" 
                     gltf-model="#robotModel" 
-                    position="0 0 0" 
+                    position="0 0.15 0" 
                     scale="0.005 0.005 0.005"
                     rotation="0 0 0"> 
           </a-entity>
@@ -72,18 +71,18 @@
         const tilt = tiltInp.value;
         const depth = parseFloat(depthInp.value);
 
-        // 1. 旋转整个组，红球和机器人相对位置不变，一起绕中心转
+        // 旋转整个系统，保证无论怎么转，机器人始终对着远处的红球
         orbit.setAttribute('rotation', `0 ${angle} 0`);
 
-        // 2. 进针逻辑：
-        // 既然红球在 Z=0.25，机器人从 Z=0 开始
-        // 增加 depth 就是增加 Z，机器人就会“向前方”红球刺入
-        arm.setAttribute('position', `0 0 ${depth}`);
+        // 进针逻辑：
+        // 机器人从 0 开始，向 0.6 挺进
+        // 这次特意增加了位移量，你应该能清楚地看到它在往前跑
+        arm.setAttribute('position', `0 0.15 ${depth}`);
         
-        // 3. 倾斜
+        // 倾斜调整
         arm.setAttribute('rotation', `${tilt} 0 0`);
 
-        status.innerText = `Orbit: ${angle}° | Depth: ${depth}m (Moving Forward)`;
+        status.innerText = `Orbit: ${angle}° | Distance: ${0.6 - depth}m to Target`;
       }
 
       [orbitInp, tiltInp, depthInp].forEach(el => el.addEventListener('input', updateSim));
