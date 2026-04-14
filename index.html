@@ -1,39 +1,37 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot AR - Path Planning</title>
+    <title>Skullbot Navigation - Path Finding</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
       .controls {
         position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-        width: 90%; background: rgba(0,0,0,0.8); color: white; padding: 15px;
-        border-radius: 15px; z-index: 999; font-family: sans-serif; font-size: 12px;
+        width: 90%; background: rgba(0,0,0,0.85); color: white; padding: 15px;
+        border-radius: 15px; z-index: 999; font-family: sans-serif;
       }
-      .control-group { margin-bottom: 10px; }
-      label { display: block; margin-bottom: 5px; color: #00d1ff; }
-      input { width: 100%; height: 10px; }
-      .stats { display: flex; justify-content: space-between; margin-top: 5px; font-family: monospace; }
+      .control-group { margin-bottom: 12px; }
+      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; }
+      input { width: 100%; }
+      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; }
     </style>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Entry Point (X: Left/Right | Z: Front/Back)</label>
-        <input type="range" id="xRange" min="-0.3" max="0.3" step="0.01" value="0">
-        <input type="range" id="zRange" min="-0.3" max="0.3" step="0.01" value="0">
+        <label>1. Move Robot (Find Entry Point)</label>
+        <input type="range" id="xRange" min="-0.4" max="0.4" step="0.01" value="0">
       </div>
 
       <div class="control-group">
-        <label>2. RCM Rotation & Tool Depth</label>
+        <label>2. Kinematics (Rotation & Depth)</label>
         <input type="range" id="rotateRange" min="-90" max="90" value="0">
-        <input type="range" id="depthRange" min="-0.2" max="0.2" step="0.01" value="0">
+        <input type="range" id="depthRange" min="-0.3" max="0.3" step="0.01" value="0">
       </div>
 
-      <div class="stats">
-        <span id="posStatus">Pos: 0, 0</span>
-        <span id="kinStatus">Rot: 0° | D: 0m</span>
+      <div class="stats" id="status">
+        Robot X: 0 | Rotation: 0° | Depth: 0m
       </div>
     </div>
 
@@ -43,64 +41,46 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        <a-entity id="navigationGroup" position="0 0 0">
-          
-          <a-entity id="robotArm" 
-                    gltf-model="#robotModel" 
-                    position="0 0 0" 
-                    scale="0.005 0.005 0.005"
-                    rotation="0 0 0">
-          </a-entity>
-          
-          <a-sphere position="0 0.12 0" 
-                    radius="0.12" 
-                    color="#f2c1a0" 
-                    opacity="0.4" 
-                    transparent="true">
-          </a-sphere>
-
-          <a-sphere position="0 0.12 0" radius="0.008" color="red"></a-sphere>
-
+        
+        <a-entity id="patientData">
+          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
+          <a-sphere id="targetPoint" position="0 0.15 0" radius="0.02" color="red"></a-sphere>
         </a-entity>
+
+        <a-entity id="robotArm" 
+                  gltf-model="#robotModel" 
+                  position="0 0 0" 
+                  scale="0.005 0.005 0.005"
+                  rotation="0 0 0">
+        </a-entity>
+
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      const navGroup = document.querySelector('#navigationGroup');
       const arm = document.querySelector('#robotArm');
-      
       const xInp = document.querySelector('#xRange');
-      const zInp = document.querySelector('#zRange');
       const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
-      
-      const posStatus = document.querySelector('#posStatus');
-      const kinStatus = document.querySelector('#kinStatus');
+      const status = document.querySelector('#status');
 
-      function updateSimulation() {
+      function updateSim() {
         const posX = xInp.value;
-        const posZ = zInp.value;
         const rot = rotateInp.value;
         const depth = depthInp.value;
 
-        // 更新导航组在 Hiro Marker 上的整体位置 (改变穿刺位置)
-        navGroup.setAttribute('position', `${posX} 0 ${posZ}`);
-
-        // 更新机器人在 RCM 轴上的运动 (旋转和深度)
+        // 核心逻辑：只移动机器人，不移动红球
+        arm.setAttribute('position', `${posX} ${depth} 0`);
         arm.setAttribute('rotation', `0 ${rot} 0`);
-        arm.setAttribute('position', `0 ${depth} 0`);
 
-        // 更新状态显示
-        posStatus.innerText = `Pos: X:${posX} Z:${posZ}`;
-        kinStatus.innerText = `Rot: ${rot}° | D: ${depth}m`;
+        status.innerText = `Robot X: ${posX} | Rotation: ${rot}° | Depth: ${depth}m`;
       }
 
-      // 监听所有滑块
-      [xInp, zInp, rotateInp, depthInp].forEach(input => {
-        input.addEventListener('input', updateSimulation);
-      });
+      xInp.addEventListener('input', updateSim);
+      rotateInp.addEventListener('input', updateSim);
+      depthInp.addEventListener('input', updateSim);
     </script>
   </body>
 </html>
