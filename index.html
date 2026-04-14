@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot 360 - Depth Corrected</title>
+    <title>Skullbot AR - Corrected Orientation</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -20,14 +20,14 @@
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Orbit Position (Search Entry Point)</label>
+        <label>1. Orbit Position (360° Search)</label>
         <input type="range" id="orbitRange" min="0" max="360" value="0">
       </div>
 
       <div class="control-group">
-        <label>2. Needle Kinematics (Tilt & Depth)</label>
+        <label>2. Needle Insertion (Push to Target)</label>
         <input type="range" id="tiltRange" min="-45" max="45" value="0">
-        <input type="range" id="depthRange" min="-0.1" max="0.2" step="0.005" value="-0.1">
+        <input type="range" id="depthRange" min="0" max="0.2" step="0.005" value="0">
       </div>
 
       <div class="stats" id="status">Orbit: 0° | Tilt: 0° | Depth: 0m</div>
@@ -39,21 +39,19 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        
         <a-entity id="patientScene">
-          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
+          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.2" transparent="true"></a-sphere>
           <a-sphere position="0 0.15 0" radius="0.02" color="red"></a-sphere>
         </a-entity>
 
         <a-entity id="robotOrbit" position="0 0.15 0" rotation="0 0 0">
            <a-entity id="robotArm" 
                     gltf-model="#robotModel" 
-                    position="0 0.25 0" 
+                    position="0 0 0.2" 
                     scale="0.005 0.005 0.005"
-                    rotation="0 0 0">
+                    rotation="0 180 0"> 
           </a-entity>
         </a-entity>
-
       </a-marker>
 
       <a-entity camera></a-entity>
@@ -68,32 +66,29 @@
       const depthInp = document.querySelector('#depthRange');
       const status = document.querySelector('#status');
 
-      // 设置一个基础偏移量，假设头颅半径是 0.12，我们让机器人在 0.15 的位置开始
-      const BASE_OFFSET = 0.15; 
+      // 机器人初始距离中心点的距离 (头颅半径 0.12 + 留一点空间)
+      const START_DIST = 0.2; 
 
       function updateSim() {
         const angle = orbitInp.value;
         const tilt = tiltInp.value;
         const depth = parseFloat(depthInp.value);
 
-        // 1. 环绕旋转
+        // 1. 轨道旋转
         orbit.setAttribute('rotation', `0 ${angle} 0`);
 
-        // 2. 进针深度修正：
-        // 初始位置设为 BASE_OFFSET，然后根据 depth 滑块增减
-        // 这样当 depth 较小时，针在头颅外；depth 变大，针才扎进去
-        const currentY = BASE_OFFSET + depth;
-        arm.setAttribute('position', `0 ${currentY} 0`);
+        // 2. 修正进针逻辑：
+        // 随着 depth 增加，Z 轴数值减小（即向着坐标原点/红球移动）
+        const currentZ = START_DIST - depth;
+        arm.setAttribute('position', `0 0 ${currentZ}`);
         
-        // 3. 倾斜角度
-        arm.setAttribute('rotation', `${tilt} 0 0`);
+        // 3. 倾斜角度：绕 X 轴旋转实现上下探头
+        arm.setAttribute('rotation', `${tilt} 180 0`);
 
         status.innerText = `Orbit: ${angle}° | Tilt: ${tilt}° | Depth: ${depth}m`;
       }
 
       [orbitInp, tiltInp, depthInp].forEach(el => el.addEventListener('input', updateSim));
-      
-      // 初始化调用一次
       updateSim();
     </script>
   </body>
