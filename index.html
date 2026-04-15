@@ -11,27 +11,28 @@
         border-radius: 15px; z-index: 999; font-family: sans-serif;
       }
       .control-group { margin-bottom: 12px; }
-      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; }
+      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; font-size: 13px;}
       input { width: 100%; }
-      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; }
+      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; border-top: 1px solid #444; padding-top:5px; }
     </style>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Move Robot (Find Entry Point)</label>
+        <label>1. Entry Position (X: Left/Right | Z: Up/Down)</label>
         <input type="range" id="xRange" min="-0.4" max="0.4" step="0.01" value="0">
+        <input type="range" id="zHeightRange" min="0" max="0.5" step="0.01" value="0.15">
       </div>
 
       <div class="control-group">
-        <label>2. Kinematics (Rotation & Depth)</label>
-        <input type="range" id="rotateRange" min="-90" max="90" value="0">
-        <input type="range" id="depthRange" min="-0.3" max="0.3" step="0.01" value="0">
+        <label>2. Puncture Control (Angle & Depth)</label>
+        <input type="range" id="rotateRange" min="-45" max="45" value="0">
+        <input type="range" id="depthRange" min="0" max="0.4" step="0.01" value="0">
       </div>
 
       <div class="stats" id="status">
-        Robot X: 0 | Rotation: 0° | Depth: 0m
+        X: 0 | Height: 0.15 | Angle: 0° | Depth: 0m
       </div>
     </div>
 
@@ -41,7 +42,6 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        
         <a-entity id="patientData">
           <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
           <a-sphere id="targetPoint" position="0 0.15 0" radius="0.02" color="red"></a-sphere>
@@ -49,11 +49,10 @@
 
         <a-entity id="robotArm" 
                   gltf-model="#robotModel" 
-                  position="0 0 0" 
+                  position="0 0.15 0" 
                   scale="0.005 0.005 0.005"
                   rotation="0 0 0">
         </a-entity>
-
       </a-marker>
 
       <a-entity camera></a-entity>
@@ -62,25 +61,35 @@
     <script>
       const arm = document.querySelector('#robotArm');
       const xInp = document.querySelector('#xRange');
+      const zHeightInp = document.querySelector('#zHeightRange'); // 新增高度控制
       const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
       const status = document.querySelector('#status');
 
       function updateSim() {
         const posX = xInp.value;
+        const posZ = zHeightInp.value; // 对应你说的上下轴
         const rot = rotateInp.value;
-        const depth = depthInp.value;
+        const depth = depthInp.value; // 对应你说的前后轴（进针）
 
-        // 核心逻辑：只移动机器人，不移动红球
-        arm.setAttribute('position', `${posX} ${depth} 0`);
-        arm.setAttribute('rotation', `0 ${rot} 0`);
+        // 【关键改动】
+        // 1. 位置：X控制左右，posZ控制上下，depth控制前后（进针）
+        arm.setAttribute('position', `${posX} ${posZ} ${depth}`);
+        
+        // 2. 角度：将旋转值赋给 X 轴，实现“低头/抬头”式的穿刺角度改变
+        // 如果你的模型需要侧着摆，就把 ${rot} 换到最后一个参数位置
+        arm.setAttribute('rotation', `${rot} 0 0`); 
 
-        status.innerText = `Robot X: ${posX} | Rotation: ${rot}° | Depth: ${depth}m`;
+        status.innerText = `X: ${posX} | Height: ${posZ} | Angle: ${rot}° | Depth: ${depth}m`;
       }
 
       xInp.addEventListener('input', updateSim);
+      zHeightInp.addEventListener('input', updateSim);
       rotateInp.addEventListener('input', updateSim);
       depthInp.addEventListener('input', updateSim);
+      
+      // 初始化执行一次
+      updateSim();
     </script>
   </body>
 </html>
