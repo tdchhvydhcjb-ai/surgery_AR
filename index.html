@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot Navigation - Path Finding</title>
+    <title>Skullbot Navigation - Final Alignment</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -20,20 +20,18 @@
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Entry Position (X: Left/Right | Z: Up/Down)</label>
+        <label>1. Entry Point (X: Left/Right | Y: Up/Down)</label>
         <input type="range" id="xRange" min="-0.4" max="0.4" step="0.01" value="0">
-        <input type="range" id="zHeightRange" min="0" max="0.5" step="0.01" value="0.15">
+        <input type="range" id="yHeightRange" min="0" max="0.5" step="0.01" value="0.15">
       </div>
 
       <div class="control-group">
-        <label>2. Puncture Control (Angle & Depth)</label>
+        <label>2. Puncture (Angle & Depth)</label>
         <input type="range" id="rotateRange" min="-45" max="45" value="0">
-        <input type="range" id="depthRange" min="0" max="0.4" step="0.01" value="0">
+        <input type="range" id="depthRange" min="0" max="0.5" step="0.01" value="0">
       </div>
 
-      <div class="stats" id="status">
-        X: 0 | Height: 0.15 | Angle: 0° | Depth: 0m
-      </div>
+      <div class="stats" id="status">Ready</div>
     </div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
@@ -42,9 +40,9 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        <a-entity id="patientData">
-          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
-          <a-sphere id="targetPoint" position="0 0.15 0" radius="0.02" color="red"></a-sphere>
+        <a-entity id="patientData" position="0 0.15 -0.4">
+          <a-sphere radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
+          <a-sphere radius="0.02" color="red"></a-sphere>
         </a-entity>
 
         <a-entity id="robotArm" 
@@ -61,34 +59,33 @@
     <script>
       const arm = document.querySelector('#robotArm');
       const xInp = document.querySelector('#xRange');
-      const zHeightInp = document.querySelector('#zHeightRange'); // 新增高度控制
+      const yInp = document.querySelector('#yHeightRange');
       const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
       const status = document.querySelector('#status');
 
       function updateSim() {
         const posX = xInp.value;
-        const posZ = zHeightInp.value; // 对应你说的上下轴
+        const posY = yInp.value; // Y 轴负责真正的上下
         const rot = rotateInp.value;
-        const depth = depthInp.value; // 对应你说的前后轴（进针）
+        const depth = parseFloat(depthInp.value);
 
-        // 【关键改动】
-        // 1. 位置：X控制左右，posZ控制上下，depth控制前后（进针）
-        arm.setAttribute('position', `${posX} ${posZ} ${depth}`);
+        // 核心修正：
+        // 1. 在 A-Frame 中，-Z 是前方。所以进针深度应该是减少 Z 值。
+        const posZ = -depth; 
         
-        // 2. 角度：将旋转值赋给 X 轴，实现“低头/抬头”式的穿刺角度改变
-        // 如果你的模型需要侧着摆，就把 ${rot} 换到最后一个参数位置
+        arm.setAttribute('position', `${posX} ${posY} ${posZ}`);
+        
+        // 2. 旋转角度：如果模型还是用屁股扎，就把 0 改成 180
         arm.setAttribute('rotation', `${rot} 0 0`); 
 
-        status.innerText = `X: ${posX} | Height: ${posZ} | Angle: ${rot}° | Depth: ${depth}m`;
+        status.innerText = `X: ${posX} | Y(Up): ${posY} | Angle: ${rot}° | Z(Depth): ${posZ}`;
       }
 
-      xInp.addEventListener('input', updateSim);
-      zHeightInp.addEventListener('input', updateSim);
-      rotateInp.addEventListener('input', updateSim);
-      depthInp.addEventListener('input', updateSim);
+      [xInp, yInp, rotateInp, depthInp].forEach(input => {
+        input.addEventListener('input', updateSim);
+      });
       
-      // 初始化执行一次
       updateSim();
     </script>
   </body>
