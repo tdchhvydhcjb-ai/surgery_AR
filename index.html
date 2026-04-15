@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Skullbot Navigation - Final Alignment</title>
+    <title>Skullbot Navigation - Path Finding</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -11,27 +11,29 @@
         border-radius: 15px; z-index: 999; font-family: sans-serif;
       }
       .control-group { margin-bottom: 12px; }
-      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; font-size: 13px;}
+      label { display: block; margin-bottom: 5px; color: #00d1ff; font-weight: bold; }
       input { width: 100%; }
-      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; border-top: 1px solid #444; padding-top:5px; }
+      .stats { font-size: 11px; color: #ccc; text-align: center; margin-top: 5px; }
     </style>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <div class="controls">
       <div class="control-group">
-        <label>1. Entry Point (X: Left/Right | Y: Up/Down)</label>
+        <label>1. Move Robot (Find Entry Point)</label>
         <input type="range" id="xRange" min="-0.4" max="0.4" step="0.01" value="0">
-        <input type="range" id="yHeightRange" min="0" max="0.5" step="0.01" value="0.15">
+        <input type="range" id="yRange" min="-0.4" max="0.4" step="0.01" value="0">
       </div>
 
       <div class="control-group">
-        <label>2. Puncture (Angle & Depth)</label>
-        <input type="range" id="rotateRange" min="-45" max="45" value="0">
-        <input type="range" id="depthRange" min="0" max="0.5" step="0.01" value="0">
+        <label>2. Kinematics (Rotation & Depth)</label>
+        <input type="range" id="rotateRange" min="-90" max="90" value="0">
+        <input type="range" id="depthRange" min="-0.3" max="0.3" step="0.01" value="-0.3">
       </div>
 
-      <div class="stats" id="status">Ready</div>
+      <div class="stats" id="status">
+        Robot X: 0 | Y: 0 | Rotation: 0° | Depth: 0m
+      </div>
     </div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
@@ -40,17 +42,19 @@
       </a-assets>
 
       <a-marker preset="hiro">
-        <a-entity id="patientData" position="0 0.15 -0.4">
-          <a-sphere radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
-          <a-sphere radius="0.02" color="red"></a-sphere>
+        
+        <a-entity id="patientData">
+          <a-sphere position="0 0.15 0" radius="0.12" color="#f2c1a0" opacity="0.3" transparent="true"></a-sphere>
+          <a-sphere id="targetPoint" position="0 0.15 0" radius="0.02" color="red"></a-sphere>
         </a-entity>
 
         <a-entity id="robotArm" 
                   gltf-model="#robotModel" 
-                  position="0 0.15 0" 
+                  position="0 0 0" 
                   scale="0.005 0.005 0.005"
                   rotation="0 0 0">
         </a-entity>
+
       </a-marker>
 
       <a-entity camera></a-entity>
@@ -59,34 +63,28 @@
     <script>
       const arm = document.querySelector('#robotArm');
       const xInp = document.querySelector('#xRange');
-      const yInp = document.querySelector('#yHeightRange');
+      const yInp = document.querySelector('#yRange');
       const rotateInp = document.querySelector('#rotateRange');
       const depthInp = document.querySelector('#depthRange');
       const status = document.querySelector('#status');
 
       function updateSim() {
         const posX = xInp.value;
-        const posY = yInp.value; // Y 轴负责真正的上下
+        const posY = xInp.value;
         const rot = rotateInp.value;
-        const depth = parseFloat(depthInp.value);
+        const depth = depthInp.value;
 
-        // 核心修正：
-        // 1. 在 A-Frame 中，-Z 是前方。所以进针深度应该是减少 Z 值。
-        const posZ = -depth; 
-        
-        arm.setAttribute('position', `${posX} ${posY} ${posZ}`);
-        
-        // 2. 旋转角度：如果模型还是用屁股扎，就把 0 改成 180
-        arm.setAttribute('rotation', `${rot} 0 0`); 
+        // 核心逻辑：只移动机器人，不移动红球
+        arm.setAttribute('position', `${posX} ${posY} ${depth} 0`);
+        arm.setAttribute('rotation', `0 ${rot} 0`);
 
-        status.innerText = `X: ${posX} | Y(Up): ${posY} | Angle: ${rot}° | Z(Depth): ${posZ}`;
+        status.innerText = `Robot X: ${posX} | Rotation: ${rot}° | Depth: ${depth}m`;
       }
 
-      [xInp, yInp, rotateInp, depthInp].forEach(input => {
-        input.addEventListener('input', updateSim);
-      });
-      
-      updateSim();
+      xInp.addEventListener('input', updateSim);
+      yInp.addEventListener('input', updateSim);
+      rotateInp.addEventListener('input', updateSim);
+      depthInp.addEventListener('input', updateSim);
     </script>
   </body>
 </html>
