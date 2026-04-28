@@ -71,7 +71,7 @@
         const rot = rotateInp.value;
         const depth = depthInp.value;
 
-        // 核心逻辑：只移动机器人，不移动红球
+        // Core logic: Only move the robot, not the red ball
         arm.setAttribute('position', `${posX} ${depth} 0`);
         arm.setAttribute('rotation', `0 ${rot} 0`);
 
